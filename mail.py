@@ -1,5 +1,7 @@
 import subprocess
 import os
+import sys
+import yaml
 
 def send_mail(from_address, to_address, subject, body, cc=None, bcc=None, attachment=None):
     """
@@ -83,11 +85,34 @@ def send_mail(from_address, to_address, subject, body, cc=None, bcc=None, attach
         print(f'Unexpected error: {e}')
         return False
     
+def load_email_config(yaml_file):
+    try:
+        with open(yaml_file, 'r') as f:
+            config = yaml.safe_load(f)
+        return config
+    
+    except FileNotFoundError:
+        print(f"Error: Configuration file '{yaml_file}' not found.")
+        sys.exit(1)
+
+    except yaml.YAMLError as e:
+        print(f"Error parsing YAML file: {e}")
+        sys.exit(1)
+    
 if __name__ == '__main__':
+    config_file = "content.yml"
+    config = load_email_config(config_file)
+
     send_mail(
-        from_address="bt477259@myubt.de",
-        to_address="fabian.netz@outlook.de",
-        subject="Test",
-        body="This is a test",
-        attachment="attachments/test.pdf"
+        from_address=config.get('from_address'),
+        to_address=config.get('to_address'),
+        subject=config.get('subject', ''),
+        body=config.get('body', ''),
+        attachment=config.get('attachment')
     )
+
+    """
+    if not to_address or not from_address:
+        print("Error: 'to' and 'from' fields are required in the YAML configuration.")
+        sys.exit(1)
+    """
