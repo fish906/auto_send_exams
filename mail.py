@@ -1,7 +1,7 @@
 import subprocess
-import sys
+import os
 
-def send_mail(from_address, to_address, subject, body, cc=None, bcc=None):
+def send_mail(from_address, to_address, subject, body, cc=None, bcc=None, attachment=None):
     """
     Args:
         from_address (str): Address of sender
@@ -10,6 +10,7 @@ def send_mail(from_address, to_address, subject, body, cc=None, bcc=None):
         body (str): Email body text
         cc (str or list, optional): CC recipient(s)
         bcc (str or list, optional): BCC recipient(s)
+        attachment (str): Attached exam
     """
 
     def escape_quotes(text):
@@ -45,6 +46,19 @@ def send_mail(from_address, to_address, subject, body, cc=None, bcc=None):
             make new bcc recipient at end of bcc recipients with properties {{address:"{bcc}"}}
     '''
         
+    if attachment:
+        abs_path = os.path.abspath(attachment)
+
+        if not os.path.exists(abs_path):
+            print(f'Warning: Attachment not found: {abs_path}')
+
+        else:
+            escaped_path = escape_quotes(abs_path)
+
+            applescript += f'''
+                make new attachment with properties {{file name:POSIX file "{escaped_path}"}} at after the last paragraph
+            '''
+        
     applescript += '''
             send
         end tell
@@ -74,5 +88,6 @@ if __name__ == '__main__':
         from_address="bt477259@myubt.de",
         to_address="fabian.netz@outlook.de",
         subject="Test",
-        body="This is a test"
+        body="This is a test",
+        attachment="attachments/test.pdf"
     )
