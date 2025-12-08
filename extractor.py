@@ -10,39 +10,56 @@ def extract_userid_from_filename(filename):
 
 def create_xml (pdf_files, output_file='mail.xml'):
     root = ET.Element('recipients')
+    error_userid_list = []
+
+    if not pdf_files:
+        print('Keine PDFs in Ordner gefunden')
+
+    if pdf_files:
+        print(f'{len(pdf_files)} PDFs gefunden')
+
     for pdf_file in pdf_files:
-        filename_without_ext = os.path.splitext(pdf_file)[0]
         userid = extract_userid_from_filename(pdf_file)
 
-        if userid:
+        if userid != None:
             recipient = ET.SubElement(root, 'recipient')
             email = ET.SubElement(recipient, 'email')
             email.text = userid
             attachment = ET.SubElement(recipient, 'attachment')
-            attachment.text = filename_without_ext
+            attachment.text = pdf_file
+
+        if userid == None:
+            error_userid_list.append(pdf_file)
 
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
 
     with open(output_file, 'w', encoding='UTF-8') as f:
         f.write(xml_str)
 
-    print(f"XML file created: {output_file}")
-    print(f"Empfänger gesamt: {len(root.findall('recipient'))}")
+    total_recipients = len(root.findall('recipient'))
+    print(f"Empfänger gesamt: {total_recipients}")
+
+    if total_recipients != len(pdf_files):
+        print("\nWARNING: Not all files were properly processed")
+        print('    The following file(s) were not processed:')
+        for error in error_userid_list:
+            print(f'        - {error}')
+
+    print(f"\nXML file created: {output_file}")
+        
 
 if __name__ == "__main__":
     pdf_directory = "attachments"
     pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
 
-    if not pdf_files:
-        print('Keine PDFs in Ordner gefunden')
-
-    elif pdf_files:
-        print(f'{len(pdf_files)} PDFs gefunden')
-
     create_xml(pdf_files)
 
+    # ggf. versetzen und error handling für falschen Ordner zufügen
+
     # ggf. wieder entfernen
+    '''
     print('Datentest:')
     for file in pdf_files[:5]:
         userid = extract_userid_from_filename(file)
         print(f'    {file} -> UserID: {userid}')
+    '''
