@@ -140,8 +140,8 @@ def send_bulk_emails(yaml_config_file, xml_recipients_file):
     fail_count = 0
     
     for idx, recipient in enumerate(recipients, 1):
-        to_address = recipient['email']
-        attachment_path = recipient['attachment']
+        to_address = recipient['email'] + '@myubt.de'
+        attachment_path = 'attachments/'+recipient['attachment']
         
         print(f"\n[{idx}/{len(recipients)}] Sending to: {to_address}")
         attachments = [attachment_path] if attachment_path else []
@@ -173,6 +173,6 @@ def send_bulk_emails(yaml_config_file, xml_recipients_file):
 
 if __name__ == '__main__':
     yaml_config_file = "content.yml"
-    xml_recipients_file = "test.xml"
+    xml_recipients_file = "mail.xml"
     
     send_bulk_emails(yaml_config_file, xml_recipients_file)
