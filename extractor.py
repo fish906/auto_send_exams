@@ -53,13 +53,3 @@ if __name__ == "__main__":
     pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
 
     create_xml(pdf_files)
-
-    # ggf. versetzen und error handling für falschen Ordner zufügen
-
-    # ggf. wieder entfernen
-    '''
-    print('Datentest:')
-    for file in pdf_files[:5]:
-        userid = extract_userid_from_filename(file)
-        print(f'    {file} -> UserID: {userid}')
-    '''
