@@ -8,28 +8,30 @@ def extract_userid_from_filename(filename):
     match = re.search(pattern, filename)
     return match.group(0) if match else None
 
-def create_xml (pdf_files, output_file='mail.xml'):
+def create_xml (dictionary, output_file='mail.xml'):
     root = ET.Element('recipients')
     error_userid_list = []
 
-    if not pdf_files:
+    if not dictionary:
         print('Keine PDFs in Ordner gefunden')
 
-    if pdf_files:
-        print(f'{len(pdf_files)} PDFs gefunden')
+    if dictionary:
+        print(f'{len(dictionary.values())} PDS gefunden')
 
-    for pdf_file in pdf_files:
-        userid = extract_userid_from_filename(pdf_file)
+    for path in dictionary.keys():
+        userid = extract_userid_from_filename(dictionary[path])
 
-        if userid != None:
+        if userid is not None:
             recipient = ET.SubElement(root, 'recipient')
             email = ET.SubElement(recipient, 'email')
             email.text = userid
             attachment = ET.SubElement(recipient, 'attachment')
-            attachment.text = pdf_file
+            attachment.text = dictionary[path]
+            path_to_attachment = ET.SubElement(recipient, 'path_to_attachment')
+            path_to_attachment.text = path
 
-        if userid == None:
-            error_userid_list.append(pdf_file)
+        if userid is None:
+            error_userid_list.append(dictionary[path])
 
     xml_str = minidom.parseString(ET.tostring(root)).toprettyxml(indent="  ")
 
@@ -39,17 +41,30 @@ def create_xml (pdf_files, output_file='mail.xml'):
     total_recipients = len(root.findall('recipient'))
     print(f"Empfänger gesamt: {total_recipients}")
 
-    if total_recipients != len(pdf_files):
+    if total_recipients != len(dictionary):
         print("\nWARNING: Not all files were properly processed")
         print('    The following file(s) were not processed:')
         for error in error_userid_list:
             print(f'        - {error}')
 
     print(f"\nXML file created: {output_file}")
-        
+
+def get_file_path(submissions_directory):
+    sub_directory = [f for f in os.listdir(submissions_directory) if f.endswith('_file')]
+    file_paths = {}
+
+    for directory in sub_directory:
+        full_path = os.path.join(submissions_directory, directory)
+        test = os.listdir(full_path)
+        for item in test:
+            file_paths[full_path] = item
+
+    return file_paths
+
+def main():
+    submissions_directory = "attachments"
+    dictionary = get_file_path(submissions_directory)
+    create_xml(dictionary)
 
 if __name__ == "__main__":
-    pdf_directory = "attachments"
-    pdf_files = [f for f in os.listdir(pdf_directory) if f.endswith('.pdf')]
-
-    create_xml(pdf_files)
+    main()
