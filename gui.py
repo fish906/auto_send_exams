@@ -2,7 +2,7 @@ import customtkinter as ctk
 from tkinter import filedialog, messagebox
 import os
 import threading
-from extractor import extract_userid_from_filename, create_xml
+from extractor import extract_userid_from_filename, create_xml, get_file_path
 from mail import send_bulk_emails, load_email_config, load_recipients_from_xml
 import yaml
 
@@ -18,7 +18,7 @@ class BulkEmailGUI(ctk.CTk):
         ctk.set_default_color_theme("blue")
 
         self.pdf_directory = ctk.StringVar(value="attachments")
-        self.pdf_files = []
+        self.pdf_files_dict = {}
         self.recipients_count = 0
 
         self.create_widgets()
@@ -133,7 +133,7 @@ class BulkEmailGUI(ctk.CTk):
 
         load_yaml_btn = ctk.CTkButton(
             load_yaml_frame,
-            text="Load Configuration from YAML",
+            text="📁 Load Configuration from YAML",
             command=self.load_config,
             height=40,
             font=ctk.CTkFont(size=14, weight="bold")
@@ -264,12 +264,16 @@ class BulkEmailGUI(ctk.CTk):
             messagebox.showerror("Error", f"Directory not found: {directory}")
             return
 
-        self.pdf_files = [f for f in os.listdir(directory) if f.endswith('.pdf')]
+        try:
+            self.pdf_files_dict = get_file_path(directory)
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to scan directory:\n{str(e)}")
+            return
 
         self.pdf_textbox.delete("1.0", "end")
 
-        if not self.pdf_files:
-            self.pdf_textbox.insert("1.0", "No PDF files found in the directory.")
+        if not self.pdf_files_dict:
+            self.pdf_textbox.insert("1.0", "No directories found in subdirectories ending with '_file'.")
             self.stats_label.configure(text="No PDFs found")
             self.generate_xml_btn.configure(state="disabled")
             return
@@ -277,16 +281,19 @@ class BulkEmailGUI(ctk.CTk):
         valid_count = 0
         invalid_files = []
 
-        for pdf_file in self.pdf_files:
-            userid = extract_userid_from_filename(pdf_file)
+        for path, filename in self.pdf_files_dict.items():
+            if filename != '.DS_Store':
+                userid = extract_userid_from_filename(filename)
+                subdir_name = os.path.basename(path)
+
             if userid:
-                self.pdf_textbox.insert("end", f"✓ {pdf_file} → {userid}\n")
+                self.pdf_textbox.insert("end", f"✓ {subdir_name}/{filename} → {userid}\n")
                 valid_count += 1
             else:
-                self.pdf_textbox.insert("end", f"✗ {pdf_file} → NO USER ID FOUND\n")
-                invalid_files.append(pdf_file)
+                self.pdf_textbox.insert("end", f"✗ {subdir_name}/{filename} → NO USER ID FOUND\n")
+                invalid_files.append(f"{subdir_name}/{filename}")
 
-        total = len(self.pdf_files)
+        total = len(self.pdf_files_dict)
         invalid_count = len(invalid_files)
         self.stats_label.configure(
             text=f"Total: {total} PDFs | Valid: {valid_count} | Invalid: {invalid_count}"
@@ -298,12 +305,12 @@ class BulkEmailGUI(ctk.CTk):
         self.generate_xml_btn.configure(state="normal")
 
     def generate_xml(self):
-        if not self.pdf_files:
+        if not self.pdf_files_dict:
             messagebox.showwarning("Warning", "Please scan PDFs first")
             return
 
         try:
-            create_xml(self.pdf_files, output_file='mail.xml')
+            create_xml(self.pdf_files_dict, output_file='mail.xml')
             messagebox.showinfo("Success", "XML file generated successfully!\n\nFile: mail.xml")
             self.log("XML file generated successfully")
             self.continue_tab1_btn.configure(state="normal")
@@ -445,7 +452,7 @@ class BulkEmailGUI(ctk.CTk):
 
             for idx, recipient in enumerate(recipients, 1):
                 to_address = recipient['email'] + '@myubt.de'
-                attachment_path = 'attachments/' + recipient['attachment']
+                attachment_path = os.path.join(recipient['path'], recipient['attachment'])
 
                 progress = idx / total_count
                 self.after(0, self.progress_bar.set, progress)
@@ -486,7 +493,7 @@ class BulkEmailGUI(ctk.CTk):
                            f"Sent: {success_count}\nFailed: {fail_count}")
 
         except Exception as e:
-            self.after(0, self.log, f"\n❌ Error: {str(e)}")
+            self.after(0, self.log, f"\n  Error: {str(e)}")
             self.after(0, self.send_btn.configure, {"state": "normal", "text": "Send All Emails"})
             self.after(0, messagebox.showerror, "Error", f"Failed to send emails:\n{str(e)}")
 
