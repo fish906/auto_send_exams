@@ -97,11 +97,13 @@ def load_recipients_from_xml(xml_file):
         for recipient in root.findall('recipient'):
             email_elem = recipient.find('email')
             attachment_elem = recipient.find('attachment')
+            path_elem = recipient.find('path_to_attachment')
             
             if email_elem is not None and email_elem.text:
                 recipient_data = {
                     'email': email_elem.text.strip(),
-                    'attachment': attachment_elem.text.strip() if attachment_elem is not None and attachment_elem.text else None
+                    'attachment': attachment_elem.text.strip() if attachment_elem is not None and attachment_elem.text else None,
+                    'path': path_elem.text.strip(),
                 }
                 recipients.append(recipient_data)
         
@@ -141,7 +143,7 @@ def send_bulk_emails(yaml_config_file, xml_recipients_file):
     
     for idx, recipient in enumerate(recipients, 1):
         to_address = recipient['email'] + '@myubt.de'
-        attachment_path = 'attachments/'+recipient['attachment']
+        attachment_path = recipient['path'] + '/' + recipient['attachment']
         
         print(f"\n[{idx}/{len(recipients)}] Sending to: {to_address}")
         attachments = [attachment_path] if attachment_path else []
