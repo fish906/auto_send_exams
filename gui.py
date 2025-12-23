@@ -224,7 +224,7 @@ class BulkEmailGUI(ctk.CTk):
 
         ctk.CTkLabel(
             tab,
-            text="Log:",
+            text="Send Log:",
             font=ctk.CTkFont(weight="bold")
         ).pack(anchor="w", padx=10, pady=(10, 5))
 
